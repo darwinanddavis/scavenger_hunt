@@ -1,0 +1,14 @@
+# https://medium.com/geekculture/how-to-change-your-github-remote-authentication-from-username-password-to-personal-access-token-64e527a766cf
+
+# 1. cd to dir
+# 2. Remove current old remote repo: git remote remove origin
+# 3. Add new remote using below repo: git remote add origin <NEW REMOTE>
+
+require(dplyr)
+# check repo box before generating token 
+tk <- "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" # 
+repo <- "scavenger_hunt"
+paste0("https://",tk,"@github.com/darwinanddavis/",repo,".git") %>%
+  print
+
+
