@@ -111,13 +111,13 @@ Sutherland and Little Lonsdale hide this Filipino feast
 
 
 
-# {data-background="https://leannecole.com.au/wp-content/uploads/2016/12/latrobe-street-morning-melbourne-monochrome.jpg" data-background-size="99.99% 99.99% " data-background-repeat="no-repeat"}
+# {data-background="https://leeduguid.com/wp-content/uploads/2017/09/Flinders-Street-Station-Melbourne-Australia-07095733.jpg" data-background-size="99.99% 99.99% " data-background-repeat="no-repeat"}
 
 
 # 4
 
 <section>
-The 30 rolls from Docklands past Queen like fluffy Japanese shaved ice (pitstop) 
+30 rolls from Docklands past Queen like fluffy Japanese shaved ice (pitstop) 
 </section>
 
 # 5
@@ -139,7 +139,7 @@ Mark it like a Queen and follow the flaky layers from the Ottoman silk road to t
 The hustle and bustle in Jakarta streets stack up sweet treats to seek the fluffy, crispy pancake piece  
 </section>
 
-# {data-background="https://lukedavidphotos.com/print-store/lands-near/melbourne-in-black-white/static.fotomerchant.com/app/images/kittens.gif" data-background-size="99.99% 99.99% " data-background-repeat="no-repeat"}
+# {data-background="https://northshoregalleryco.com/cdn/shop/products/20200204-6096-2_b0469b71-b4a8-4c60-b9e6-2efc7b92addf_5000x.jpg?v=1604200609" data-background-size="99.99% 99.99% " data-background-repeat="no-repeat"}
 
 # 7 
 
@@ -148,11 +148,23 @@ Where fragrant rice mingles with sambal heat, coconut essence rises like morning
 </section>
 
 
+# 8
+
+Swipe to reveal the next clue 
+
+---
+
+<center>
+<img src="img/findaword.png" width="500" height="500">
+</center>
+
+
 <!--     -->
 <!--  Melb Uni --> 
 <!--     -->
 
-# 8 
+
+# 9
 
 <section>
 In the 1970s, Einstein stood and viewed Manhattanhenge while it was probably still all country. Was it hilly? Or blues? Double up to (almost) reveal this place. 
@@ -160,14 +172,14 @@ In the 1970s, Einstein stood and viewed Manhattanhenge while it was probably sti
 
 # {data-background="https://thumbs.dreamstime.com/b/state-library-victoria-main-hall-69284252.jpg?" data-background-size="99.99% 99.99% " data-background-repeat="no-repeat"}
 
-# 9
+# 10
 
 <section>
 North of Brunswick off Sydney, a bookstore from the far east specialising in silken soy squares and bean curd
 </section>
 
 
-# 10 
+# 11
 
 <section>
 Where sands shimmer like metal jewellery in Caribbean warmth, seek this Lygon spot for a much needed break (pitstop)  
@@ -185,8 +197,8 @@ Where sands shimmer like metal jewellery in Caribbean warmth, seek this Lygon sp
 ---  
 
 <center>  
-Press `d` to download your written answers  
-[Return to beginning to check your answers](#6)  
+<!-- Press `d` to download your written answers   -->
+[Return to beginning](#6)  
 </center>  
 
 ---  
