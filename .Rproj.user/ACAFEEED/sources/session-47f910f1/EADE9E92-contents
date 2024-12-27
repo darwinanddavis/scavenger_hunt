@@ -1,0 +1,463 @@
+# !!! 20231003 uses osmextract from work computer (projects/osm/template_rachel.R)
+# osmdata here produces bad download connection error
+# osmextract here produces memory allocation error - see osmextract section below for url to potentially solve
+
+here::set_here("/Volumes/Matt_timemachine/maptracks")
+ 
+user <- "katie"
+year_current <- "2024"
+month_current <- "nov"
+
+
+plot_final_pdf <- T
+get_flight_path <- F # calc flight path
+get_projection <- F # calc projected polygon and path data
+coastlines <- F # are there coastlines that need to be cropped to admin boundaries? 
+source(here::here(year_current,month_current,user) %>% paste0("/user_",user,".R"))
+# source("funcs/user_read_func.R") # load user and map details
+# source("funcs/page_print_func.R") # load page print func 
+# source("funcs/add_font_func.R") # load font lib func 
+
+# reload current city_df for user 
+if(!is.null(paste0(here::here(year_current,month_current,user),"/",user,".Rda"))){
+  city_df <- readRDS(paste0(here::here(year_current,month_current,user),"/",user,".Rda")) 
+  
+  road_osm_large <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_1.Rda"))[[1]]
+  road_osm_med <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_2.Rda"))[[1]] 
+  road_osm_small <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_3.Rda"))[[1]] 
+  road_osm_small2 <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_4.Rda"))[[1]] 
+  park_osm2 <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_5.Rda"))[[1]] 
+  park_osm <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_6.Rda"))[[1]] 
+  water_osm <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_7.Rda"))[[1]] 
+  river_osm <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_8.Rda"))[[1]] 
+  golf <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_9.Rda"))[[1]] 
+  aeroway_osm <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_10.Rda"))[[1]] 
+  stadium_osm <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_11.Rda"))[[1]] 
+  cemetery_osm <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_12.Rda"))[[1]] 
+  road_osm2 <- readRDS(paste0(here::here(year_current,month_current,user,"data2"),"/osm_13.Rda"))[[1]] 
+  
+  cat("Reading in final city_df from dir\n")
+}
+
+# packages  ---------------------------------------------------------------
+
+# pcks
+pacman::p_load(here,sf,RColorBrewer,dplyr,ggmap,sp,maptools,scales,rgdal,ggplot2,readr,devtools,colorspace,mapdata,ggsn,mapview,mapproj,ggthemes,grid,rnaturalearth,rnaturalearthdata,ggtext,purrr,rworldxtra,broom,geosphere) # 2023 pck install
+# high res map version 
+# https://hecate.hakai.org/rguide/mapping-in-r.html
+require(mapdata) # high res data
+require(ggsn) # north symbols and scale bars
+
+# ----------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------------------------
+# read in kml data ------------------------------------------------------------
+
+
+
+pacman::p_load(XML)
+fd <- here::here(year_current,month_current,user,"gpx") %>% 
+  list.files(full.names = T) 
+
+city_df <- c()
+for(f in fd){
+  gpx1 <- f %>% 
+    htmlTreeParse(error = function(...) {}, useInternalNodes = T)
+  elev <- as.numeric(xpathSApply(gpx1, path = "//trkpt/ele", xmlValue))
+  times <- xpathSApply(gpx1, path = "//trkpt/time", xmlValue)
+  coord <- xpathSApply(gpx1, path = "//trkpt", xmlAttrs)
+  
+  gpxf <- tibble(lat = coord["lat",] %>% as.numeric(), 
+                 lon = coord["lon",] %>% as.numeric(),
+                 elev = elev
+                 # time = times %>% ymd_hms() 
+  )
+  city_df <- rbind(city_df,gpxf)
+}
+
+# turn into linestring
+get_linestring <- function(df){
+  df %>% as.matrix %>% st_linestring(dim = "XY") %>%
+    st_sfc(crs = 4326) 
+}
+
+fd %>% st_layers()
+pathm <- fd %>% st_read(layer = "tracks")
+
+
+
+# # read layered kml and save final pathm and city_df
+# require(XML)
+# get_path <- function(dir,kid) here::here(year_current,month_current,user,dir) %>% 
+#   list.files(kid,full.names = T) 
+# layers <- get_path("kml",user) %>% st_layers() %>% .[[1]] # get layer names
+# patht <- c() # empty path and citydf vector
+# city_df2 <- c() 
+# for(pid in layers %>% seq_along){
+#   path <- get_path("kml",user) %>% st_read(layer = layers[pid], fid_column_name = "IDS") 
+#   # get city_df
+#   path_id <- path 
+#   pn <- path_id$Name 
+#   pll <- path_id %>% st_geometry() %>% unlist
+#   pll <- pll[!pll==0] %>% matrix(pn %>% length,2,byrow = T) # get site latlon
+#   c1 <- data.frame(pll,
+#                    pn = pn %>% str_split_fixed(",",2) %>% .[,1]) 
+#   colnames(c1) <- c("lon","lat","city")
+#   c1$city <- c1$city %>% as.character()
+#   city_df2 <- rbind(city_df2,c1) %>% distinct() # save final city_df
+#   patht <- rbind(patht,path)
+# }
+# user
+# pathm <- patht
+
+
+ 
+
+
+saveRDS(pathm,paste0(here::here(year_current,month_current,user),"/",user,"_pathm.Rda")) # read main kml path
+saveRDS(city_df,paste0(here::here(year_current,month_current,user),"/",user,".Rda")) # read main kml path
+
+
+# load world polygon data -------------------------------------------
+# world data ----------------------------------------------------
+
+
+
+require(raster) # super hi-res (includes all provinces)
+countries <- "United States of America"
+suburb <- c("Conneticut","New York")
+
+usa_county <- "/Volumes/Matt_timemachine/maptracks/shapefiles/raster/gadm/gadm36_USA_2_sp.rds" %>% 
+  readRDS() %>% st_as_sf(coords = c("x","y"), crs = 4326) #%>% 
+  # filter(NAME_1 %in% "New York")
+
+usa_county$NAME_1 |> unique()
+
+# physical 
+# quant <- 0.1
+subloc_id <- c("CT","NY")
+parks_ne <- rbind(
+  readRDS(here::here("shapefiles","parks","usa","parks_usa.Rda"))
+  , readRDS(here::here("shapefiles","parks","usa","parks_usa_2.Rda"))
+  , readRDS(here::here("shapefiles","parks","usa","parks_usa_3.Rda"))
+) %>% 
+  filter(SUB_LOC %in% str_subset(SUB_LOC,c(subloc_id)) & 
+           !DESIG %in% str_subset(DESIG,"Marine") # &
+         # REP_AREA > REP_AREA %>% quantile(quant)
+  ) %>% 
+  st_intersection(usa_county)
+
+# # other ne data 
+# lakes_ne <- readRDS(here::here("shapefiles","lakes","lakes_ne.Rda"))
+# urban_areas <- readRDS(here::here("shapefiles","urban","urban_areas.Rda"))
+# rivers_ne <- readRDS(here::here("shapefiles","rivers","rivers_ne.Rda"))
+# roads_ne <- readRDS(here::here("shapefiles","roads","roads_ne_usa.Rda"))
+# # bath0 <- readRDS(here::here("shapefiles","bathymetry","bathymetry_0.Rda")) # 0m bath
+# 
+
+
+# osm extract --------------------------------------------------------------
+
+# install.packages("osmextract")
+# require(osmextract)
+
+# for '7969360 is too close to the limit' error -  https://stackoverflow.com/questions/71641315/error-c-stack-usage-is-too-close-to-the-limit-at-r-startup
+# 
+# 
+# road_osm_large <- "/Volumes/Matt_timemachine/maptracks/2023/sep/rachel/data/road_osm_large.Rda" %>% readRDS
+# road_osm_med <- "/Volumes/Matt_timemachine/maptracks/2023/sep/rachel/data/road_osm_med.Rda" %>% readRDS
+# road_osm_small <- "/Volumes/Matt_timemachine/maptracks/2023/sep/rachel/data/road_osm_small.Rda" %>% readRDS
+# water_osm <- "/Volumes/Matt_timemachine/maptracks/2023/sep/rachel/data/water_osm.Rda" %>% readRDS
+# 
+
+
+
+
+# osm data ------------------------------------------------------
+pacman::p_load(osmdata)
+location1 <- "Greenwich, CT 06831" # "cape cod massachusetts usa" # "Barnstable"
+# road network data 
+# osm key-value schema https://wiki.openstreetmap.org/wiki/Map_Features
+# osmid and polygon search https://www.openstreetmap.org/relation/1252425#map=13/-33.8215/151.2480
+
+
+# api_list <- c('http://overpass-api.de/api/interpreter',
+#               'https://lz4.overpass-api.de/api/interpreter',
+#               'https://z.overpass-api.de/api/interpreter',
+#               'https://overpass.kumi.systems/api/interpreter')
+# 
+# api_to_use <- sample(1:length(api_list), 1)
+# set_overpass_url(api_list[api_to_use]) 
+
+
+# road_osm <- get_osm_feature(location1, "highway", highway_types,"osm_lines")
+
+# 12-21
+# for SSL certificate problem: certificate has expired error: turn off ssl certificate verification (turn back on after using)
+# library(httr)
+# httr::set_config(config(ssl_verifypeer = F))
+
+# pacman::p_load(osmdata)
+# remotes::install_git("https://git.sr.ht/~mpadge/osmdata")
+# install.packages("osmdata")
+require(osmdata)
+available_tags("addr:housenumber") # see available values for osm keys
+
+available_tags("water") # see available values for osm keys
+
+# pull feature values 
+get_feature_values <- function(key,value) available_tags(key)[str_which(available_tags(key),value)] 
+
+highway_types <- get_feature_values("highway","moto|prim|secon|liv|res|highway|stree|driv|cresc|lane|avenu|trunk")
+# laneway_types <- get_feature_values("highway","livin|foot|pedes")
+# waterway_types <- get_feature_values("waterway","")
+water_types <- get_feature_values("water","canal|lake|oxbow|pond")
+park_types <- get_feature_values("leisure","comm|gard|park|natur|play|track|golf")
+# boundary_types <- get_feature_values("boundary","administrative")
+building_types <- get_feature_values("building","residential|house|apartment|semidetached_house|retail|public|commercial")
+# aeroway_types <- get_feature_values("aeroway","apron|aero|run|taxi|term")
+# bay_types <- get_feature_values("natural","wat|bay|stra")
+# building_feature <- "place"
+# building_values1 <- "city"
+
+
+# get osm feature function 
+# ! uncomment osm_id and name when using same road widths for roads
+get_osm_feature <- function(loc,key,value,geo){
+  oo <- opq(loc) %>% # find location
+    add_osm_feature(key = key, value = value) %>% # source key-value pair
+    osmdata_sf() %>% # get sf obj
+    unname_osmdata_sf() # combat sf error
+  oo[[geo]] # %>% # pull geometry
+  # dplyr::select(osm_id, name) # %>%
+  # mutate(area = st_area(.))  %>% 
+  # filter(area >=quantile(area, probs = 0.75)) # rm small island features
+}
+
+
+
+# location, key, value 
+road_osm <- get_osm_feature(location1, "highway", highway_types$Value,"osm_lines")
+road_osm2 <- get_osm_feature(location1, "highway", "tertiary","osm_lines")
+# # laneway_osm <- get_osm_feature(location1, "highway", laneway_types,"osm_lines")
+# river_osm <- get_osm_feature(location1, "water", water_types,"osm_polygons") # get polygons for waterways (check location first if necessary)
+water_osm <- get_osm_feature(location1, "water", water_types$Value,"osm_multipolygons")
+water_osm2 <- get_osm_feature(location1, "water", water_types$Value,"osm_polygons")
+park_osm <- get_osm_feature(location1, "leisure", park_types$Value,"osm_polygons")
+# park_osm2 <- get_osm_feature(location1, "leisure", park_types,"osm_multipolygons")
+# golf <- get_osm_feature(location1, "sport", "golf","osm_polygons")
+# aeroway_osm <- get_osm_feature(location1, "aeroway", aeroway_types,"osm_polygons")
+# cemetery_osm <- get_osm_feature(location1, "landuse", "cemetery","osm_multipolygons")
+# stadium_osm <- get_osm_feature(location1, "leisure","stadium","osm_polygons")
+
+# location1 <- "new york city"
+# building_osm <- get_osm_feature(location1, "building", building_types %>% setdiff(c("gatehouse","houseboat","stilt_house","bakehouse","greenhouse","tree_house")),"osm_polygons") %>%  
+#   mutate("address" = paste0(addr.housenumber," ", addr.street,", New York City, USA")) 
+# building_osm2 <- get_osm_feature(city_df$address, "building", building_types %>% setdiff(c("gatehouse","houseboat","stilt_house","bakehouse","greenhouse","tree_house")),"osm_polygons") %>%  
+#   mutate("address" = paste0(addr.housenumber," ", addr.street,", New York City, USA")) 
+
+# bbb <- osmdata::opq_osm_id("271188040",type = "node") %>%
+#   add_osm_feature(key = "building", value = building_types,
+#                   bbox = usa_county %>% filter(NAME_2 %in% "New York") %>% st_bbox()) %>% 
+#   osmdata_sf() %>% # get sf obj
+#   unname_osmdata_sf() %>% 
+#   .[["osm_polygons"]]
+# bbb %>% nrow
+
+# ttt <- building_osm  %>%
+#   st_join(city_df_,
+#           join = st_intersects)
+# ttt <- building_osm %>%
+#   st_filter(city_df_,
+#             .predicate = st_intersects
+#             # join = st_overlaps
+#             )
+# ttt %>% nrow
+ # ggplot() + geom_sf(data = ttt)
+
+# set road sizes
+# road_osm_large <- road_osm[str_which(road_osm$highway, "moto|prim|highway|trunk"),]
+# road_osm_med <- road_osm[str_which(road_osm$highway, "secon"),]
+# road_osm_small <- road_osm[str_which(road_osm$highway, "liv|res|stree"),]
+# road_osm_small2 <- road_osm2[str_which(road_osm2$highway, "tert"),]
+
+roads_prim <- c("secondary","secondary_link", "motorway_link","motorway","service","primary")
+road_large <- road_osm |> filter(highway %in% roads_prim)
+road_small <- road_osm |> filter(!highway %in% roads_prim)
+
+
+
+road_osm |> ggplot() +
+  geom_sf() +
+  geom_sf(data = pathm, col = "red") +
+  geom_sf(data = road_osm2, col = "green") +
+  geom_sf(data = pathm |> st_buffer(200) |> st_as_sfc(), col = "red", fill = "red")
+
+# save to dir 
+water_osm |> saveRDS(here::here(year_current,month_current,user,"osm","water_osm.Rda"))
+water_osm2 |> saveRDS(here::here(year_current,month_current,user,"osm","water_osm2.Rda"))
+road_large |> saveRDS(here::here(year_current,month_current,user,"osm","road_large.Rda"))
+road_small |> saveRDS(here::here(year_current,month_current,user,"osm","road_small.Rda"))
+park_osm |> saveRDS(here::here(year_current,month_current,user,"osm","park_osm.Rda"))
+
+
+# # save osm data to dir 
+# # !!! files will be saved in dir in below order    
+# osmlist <- list(
+#   road_osm_large,
+#   road_osm_med,
+#   road_osm_small,
+#   road_osm_small2,
+#   park_osm2,
+#   park_osm,
+#   water_osm,
+#   river_osm,
+#   golf,
+#   aeroway_osm,
+#   stadium_osm,
+#   cemetery_osm,
+#   road_osm2 # main avenues 
+# ) #%>% 
+# #sapply(save_osm_data)
+# names(osmlist) <- 1:length(osmlist)
+# for(i in seq_along(osmlist)){
+#   saveRDS(osmlist[i],paste0(here::here(year_current,month_current,user,"data2"),"/osm_",osmlist[i] %>% names,".Rda"))
+# }
+
+
+
+# geocoding  ----------------------------------------------------
+require(ggmap)
+require(purrr)
+register_google("/Users/malishev/Documents/Data/gggmap/ayepeeeye.txt" %>% read_lines)
+(addy <- paste0(city_df %>% pull(city),", New York City, USA"))
+city_df_geo <- geocode(addy, output = "all",nameType = "long")
+get_geo_latlon <- function(df,id) df %>% purrr::map("results") %>%
+  purrr::flatten() %>% 
+  purrr::map(c("geometry","location",id)) %>% unlist
+
+city_df_final <- data.frame(
+  "lon" = get_geo_latlon(city_df_geo,"lng"),
+  "lat" = get_geo_latlon(city_df_geo,"lat")
+)
+
+
+
+# -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+# plot --------------------------------------------------------------------
+
+user
+cex <- path_size
+bb_buffer <- 9 * 10 ^2
+park_alpha <- 0.4
+add_title <- F
+
+for(cc in cc){ # loop through col options
+  source(here::here(year_current,month_current,user) %>% paste0("/user_",user,".R"))
+  source("/Volumes/Matt_timemachine/maptracks/funcs/page_print_dims.R")
+  # source("/Volumes/Matt_timemachine/maptracks/funcs/title_xy.R")
+  
+  graphics.off()
+  if(get_projection){
+    bbox <- bbc %>% st_bbox
+    # bbox <- bbc %>% filter(!name %in% c("Hawaii","Alaska")) %>% st_bbox # get bbox from proj polygon, not proj city_df
+  }else{
+    bbox <- pathm %>% 
+      st_buffer(bb_buffer) %>% st_bbox
+    
+  }
+  
+  # roads_ne |> st_drop_geometry() |> dplyr::select(type) |> unique()
+
+  
+  p <- ggplot() +
+    # base polygons
+    geom_sf(data=usa_county, fill = fg, col = border_col, size = 0.1) + # country base
+    # geom_sf(data=dd, fill = fg, col = border_col, size = 0.1) + # country base
+    # geom_richtext(data=map_title_final,aes(tx,ty,label=title),color=border_col %>% darken(0.3), family=map_title_font, size = map_title_size, fill = NA, label.color = NA) + # map title 
+    # geom_sf(data=bay_osm, fill = bg, col = border_col, size = 0.1) + # add missing bay osm
+    # geom_sf(data = admin_boundary, fill = adjustcolor(border_col,park_alpha), col = border_col, size = 0.15) +
+    # land features and osm data
+    geom_sf(data=lakes_ne, fill = bg, col = border_col, size = 0.1) + # add global lakes
+    # geom_sf(data=parks_ne, fill = adjustcolor(park_col,park_alpha), col = NA, size = 0) + # add parks
+    # geom_sf(data=urban_areas, fill = adjustcolor(border_col,0.3), col = NA, size = 0) + # add urban
+    geom_sf(data=road_large, col = border_col, lwd = 0.6) + # add roads
+    geom_sf(data=road_small, col = border_col, lwd = 0.6) + # add roads
+    # geom_sf(data=rivers_ne, fill = bg, col = bg, size = 0.2) + # add global lakes
+    
+    geom_sf(data=park_osm, fill = adjustcolor(park_col,park_alpha), col = NA, size = 0) + #
+    # geom_sf(data=park_osm2, fill = adjustcolor(park_col,park_alpha), col = NA, size = 0) + #
+    
+    # geom_sf(data=golf, fill = adjustcolor(park_col,park_alpha), col = NA, size = 0) + #
+    # geom_sf(data=cemetery_osm, fill = adjustcolor(park_col,park_alpha), col = NA, size = 0) + #
+    # geom_sf(data=aeroway_osm, fill = adjustcolor(road_col,0.3), col = NA, size = 0) + #
+    
+    # geom_sf(data = river_osm, fill=bg, col = NA, size = 0) + # add rivers
+    geom_sf(data = water_osm, fill=bg, col = NA, size = 0) +
+    geom_sf(data = water_osm2, fill=bg, col = NA, size = 0) +
+    
+    # geom_sf(data = building_osm, fill=NA, col = road_col, size = cex/15) + 
+    # geom_sf(data = building_osm2, fill=NA, col = road_col, size = cex/15) + 
+    # geom_sf_label(data = usa_county, aes(label=NAME_2),family=city_label_font, color = border_col, size = 2, label.size = 0, fill = NA) +
+    # added sites
+    # geom_sf(data=stadium_osm, col = adjustcolor(road_col,park_alpha), size = 0) + #
+    
+    # osm roads
+    # geom_sf(data = road_osm_large,col=road_col,size=cex/1.5) +
+    # geom_sf(data = road_osm_med,col=road_col,size=cex/2) +
+  
+    # geom_sf(data = road_osm_small,col=road_col,size=cex/7) +
+    
+    # geom_sf(data = road_osm_foot,col=road_col,size=cex/7.5) +
+    
+    
+    # user data 
+    # geom_point(data = city_df2, aes(lon,lat),col = path_col, size = city_size) +
+    # geom_sf(data = city_df2, col = path_col, size = city_size) +
+    geom_sf(data = pathm, col = path_col, lwd = path_size) +
+    # geom_sf(data = pathm2, col = path_col, size = path_size) +
+    # geom_sf(data=bath0, fill = bg, col = NA, size = 0) + # add missing bay osm
+    # coord
+    coord_sf(xlim = c(bbox[1],bbox[3]), ylim = c(bbox[2],bbox[4])) + # bbox
+    theme_nothing() +
+    theme(panel.grid.major = element_line(colour = "transparent"),
+          plot.background = element_rect(fill = bg, colour = "transparent"),
+          axis.text = element_blank(), 
+          axis.ticks.length=unit(0, "null"),
+          # plot.margin=unit(c(-10,-10,-10,-10),NULL),
+          panel.ontop = F
+    ) +
+    labs(x = NULL, y = NULL) 
+  
+  ggsave(here::here(year_current,month_current,user) %>% paste0("/",paste(user,"final",cc,sep="_"),".pdf"), p, width = width, height = height, dpi = "retina", units = units, limitsize = F)
+  # ggsave(here::here(year_current,month_current,user) %>% paste0("/",paste(user,"final",cc,sep="_"),"path.pdf"), p, width = width, height = height, dpi = "retina", units = units, limitsize = F)
+  
+  
+} # end cc loop
+
+
+
+
+
+city_df$city %>% str_to_upper()
+path_col
+border_col
+c(width,height)/1.6
+
+
+# lab ---------------------------------------------------------------------
+
+
+# "https://www.openstreetmap.org/api/0.6/relation/2387633" %>% 
+#   xml2::read_xml() %>% 
+#   xml2::write_xml(file = "/Volumes/Matt_timemachine/maptracks/2023/sep/rachel/data/nola.osm")
+# 
+# layers <- "/Volumes/Matt_timemachine/maptracks/2023/sep/rachel/data/nola.osm" %>% 
+#   st_layers %>% .[[1]]
+# 
+# # option 2- need to upgrade r
+# # https://stackoverflow.com/questions/76835293/error-when-querying-osmdata-package-http-405-method-not-allowed
+# install.packages("nominatimlite")
+# nominatim_polygon <- nominatimlite::geo_lite_sf(address = "Milan, Italy", points_only = FALSE)
+# bbox <- sf::st_bbox(nominatim_polygon)
